@@ -746,9 +746,11 @@
     
     <!-- Firebase Module Script -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+      
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js";
+  import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
         // --- Mock Data generators if DB is empty ---
         const mockDoctors = [
@@ -991,58 +993,52 @@
 
             // --- Firebase Setup ---
             async initFirebase() {
-                try {
-                    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-                    
-                    if(!firebaseConfig) {
-                        console.warn("No Firebase Config found. App will run in UI-only mode.");
-                        return;
+    try {
+        const firebaseConfig = {
+            apiKey: "AIzaSyDGE3k1R-_eCdz4AVo4Bm4hCpEJVb4eK4g",
+            authDomain: "smart-clinic-2ae06.firebaseapp.com",
+            projectId: "smart-clinic-2ae06",
+            storageBucket: "smart-clinic-2ae06.firebasestorage.app",
+            messagingSenderId: "735760049865",
+            appId: "1:735760049865:web:5ade3114b688880bc44f18",
+            measurementId: "G-97PTSG5TD6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        this.auth = getAuth(app);
+        this.db = getFirestore(app);
+
+        await signInAnonymously(this.auth);
+
+        onAuthStateChanged(this.auth, async (user) => {
+            this.user = user;
+            if (user) {
+                if(!user.isAnonymous) {
+                    document.getElementById('auth-buttons-out').classList.add('hidden');
+                    document.getElementById('auth-buttons-in').classList.remove('hidden');
+                    await this.fetchUserData();
+                    if(document.getElementById('view-auth').classList.contains('active')){
+                        this.navigate('dashboard-shell');
                     }
-
-                    const app = initializeApp(firebaseConfig);
-                    this.auth = getAuth(app);
-                    this.db = getFirestore(app);
-
-                    // Auth First Rule
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(this.auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(this.auth);
-                    }
-
-                    // Setup Auth Listener
-                    onAuthStateChanged(this.auth, async (user) => {
-                        this.user = user;
-                        if (user) {
-                            if(!user.isAnonymous) {
-                                document.getElementById('auth-buttons-out').classList.add('hidden');
-                                document.getElementById('auth-buttons-in').classList.remove('hidden');
-                                await this.fetchUserData();
-                                // If on auth page, redirect
-                                if(document.getElementById('view-auth').classList.contains('active')){
-                                    this.navigate('dashboard-shell');
-                                }
-                            } else {
-                                // Anonymous
-                                document.getElementById('auth-buttons-out').classList.remove('hidden');
-                                document.getElementById('auth-buttons-in').classList.add('hidden');
-                            }
-                        } else {
-                            document.getElementById('auth-buttons-out').classList.remove('hidden');
-                            document.getElementById('auth-buttons-in').classList.add('hidden');
-                            this.userData = null;
-                            if(document.getElementById('view-dashboard-shell').classList.contains('active')){
-                                this.navigate('landing');
-                            }
-                        }
-                    });
-
-                } catch (e) {
-                    console.error("Firebase init error:", e);
-                    this.showToast("Failed to connect to database.", "error");
+                } else {
+                    document.getElementById('auth-buttons-out').classList.remove('hidden');
+                    document.getElementById('auth-buttons-in').classList.add('hidden');
+                }
+            } else {
+                document.getElementById('auth-buttons-out').classList.remove('hidden');
+                document.getElementById('auth-buttons-in').classList.add('hidden');
+                this.userData = null;
+                if(document.getElementById('view-dashboard-shell').classList.contains('active')){
+                    this.navigate('landing');
                 }
             }
+        });
 
+    } catch (e) {
+        console.error("Firebase init error:", e);
+        this.showToast("فشل الاتصال بقاعدة البيانات", "error");
+    }
+}
             // --- Authentication Logic ---
             toggleAuthMode() {
                 this.isLoginMode = !this.isLoginMode;
